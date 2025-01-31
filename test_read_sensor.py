@@ -1,29 +1,53 @@
-import Adafruit_DHT
 import time
+import board
+import busio
+import digitalio
+from adafruit_mcp3xxx.mcp3008 import MCP3008
+from adafruit_mcp3xxx.analog_in import AnalogIn
 
-# DHT11 센서 설정
-DHT_SENSOR = Adafruit_DHT.DHT11
-DHT_PIN = 4  # GPIO 4번 핀 사용
+# SPI 통신 설정
+spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI)
+cs = digitalio.DigitalInOut(board.D5)  # CE0 핀
+mcp = MCP3008(spi, cs)
 
-def read_sensor():
+# TDS 센서 연결된 채널 (MCP3008의 채널 0 사용)
+tds_channel = AnalogIn(mcp, MCP3008.P0)
+
+# 보정 값 (필요에 따라 조정)
+VREF = 5.0  # 참조 전압
+TEMPERATURE = 25.0  # 물 온도
+
+def read_tds():
     try:
-        # 센서에서 온습도 데이터 읽기
-        humidity, temperature = Adafruit_DHT.read_retry(DHT_SENSOR, DHT_PIN)
+        # 아날로그 값 읽기
+        rawValue = tds_channel.value
+        voltage = (rawValue * VREF) / 65536.0
         
-        if humidity is not None and temperature is not None:
-            print(f'온도: {temperature:.1f}°C')
-            print(f'습도: {humidity:.1f}%')
-        else:
-            print('센서 읽기 실패. 다시 시도해주세요.')
-            
+        # 온도 보정
+        compensation_coefficient = 1.0 + 0.02 * (TEMPERATURE - 25.0)
+        
+        # 보정된 전압
+        compensation_voltage = voltage / compensation_coefficient
+        
+        # TDS 값 계산 (ppm)
+        tds = (133.42 * compensation_voltage * compensation_voltage * compensation_voltage 
+               - 255.86 * compensation_voltage * compensation_voltage 
+               + 857.39 * compensation_voltage) * 0.5
+        
+        return tds
     except Exception as e:
         print(f'에러 발생: {e}')
+        return None
 
 def main():
-    while True:
-        read_sensor()
-        # 2초 간격으로 센서 값 읽기
-        time.sleep(2)
+    try:
+        while True:
+            tds_value = read_tds()
+            if tds_value is not None:
+                print(f'TDS 값: {tds_value:.2f} ppm')
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\n프로그램을 종료합니다.")
 
 if __name__ == "__main__":
     main()
