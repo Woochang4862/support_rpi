@@ -1,8 +1,10 @@
+from serial import *
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import db
 import time
 from datetime import datetime
+from threading import Thread
 
 # Firebase Admin SDK 초기화
 cred = credentials.Certificate('serviceAccountKey.json')
@@ -10,24 +12,42 @@ firebase_admin.initialize_app(cred, {
     'databaseURL': 'https://support-764f8-default-rtdb.firebaseio.com/'
 })
 
-def update_boolean_value():
-    try:
-        while True:
-            # boolean 값 토글
-            ref = db.reference('laundry')
-            value = not ref.get()
-            
-            # Firebase에 데이터 저장
-            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            ref.set(value)
-            print(f"저장됨: {current_time} - {value}")
-            
-            # 10초 대기
-            time.sleep(1)
-            
-    except Exception as e:
-        print(f"오류 발생: {e}")
+last_value = 0
 
-if __name__ == "__main__":
-    print("Firebase에 boolean 값 저장 시작...")
-    update_boolean_value()
+def get_data(ser):
+    global last_value
+    
+    while True:
+        try:
+            if ser.inWaiting() > 0:
+                last_value = float(ser.readline().decode().strip())
+            
+        except Exception as e:
+            print(f'error : {e}')
+    
+    
+            
+if __name__ == '__main__':
+    ser = Serial('/dev/ttyACM1', 9600, timeout=1)
+    ref = db.reference('laundry')
+    
+    thread1 = Thread(target = get_data, args=(ser,))
+    thread1.start()
+    while True:
+        try:
+            """
+            30 초 15 와트
+            25 초 
+            20 초 
+            15 초 9 와트 ***
+            """
+            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            ref.set(last_value >= 8)
+            print(f"저장됨: {current_time} - {last_value}")
+            time.sleep(15)
+            
+        except Exception as e:
+            print(f'firebase error : {e}')
+    
+    ser.close()
+    
