@@ -28,7 +28,9 @@ def get_data(ser):
         try:
             if ser.inWaiting() > 0:
                 last_value = float(ser.readline().decode().strip())
-            
+        except OSError as e:
+            print(f'input/output error : {e}')
+            return
         except Exception as e:
             print(f'error : {e}')
             print(type(e))
@@ -53,12 +55,12 @@ if __name__ == '__main__':
             arduino_port = find_arduino_port()
             ser = Serial(arduino_port, 9600, timeout=1)
             thread1 = Thread(target = get_data, args=(ser,))
-            thread1.start()
+            thread1.start()        
         except Exception as e:
             print(f'arduino connection error : {e}')
             continue
         
-        while True:
+        while thread1!=None and thread1.is_alive():
             try:
                 """
                 30 초 15 와트
