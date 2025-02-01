@@ -32,20 +32,19 @@ def get_data(ser):
             print(f'input/output error : {e}')
             return
         except Exception as e:
-            print(f'error : {e}')
-            print(type(e))
-            
+            print(f'error : {e}')            
     
     
             
 if __name__ == '__main__':
     while True:
         try:
-            # Firebase Admin SDK 초기화
-            cred = credentials.Certificate('serviceAccountKey.json')
-            firebase_admin.initialize_app(cred, {
-                'databaseURL': 'https://support-764f8-default-rtdb.firebaseio.com/'
-            })    
+            if not firebase_admin._apps:
+                # Firebase Admin SDK 초기화
+                cred = credentials.Certificate('serviceAccountKey.json')
+                firebase_admin.initialize_app(cred, {
+                    'databaseURL': 'https://support-764f8-default-rtdb.firebaseio.com/'
+                })    
         except Exception as e:
             print(f'firebase connection error : {e}')
             continue
