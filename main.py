@@ -5,6 +5,7 @@ from firebase_admin import db
 import time
 from datetime import datetime
 from threading import Thread
+import os
 
 # Firebase Admin SDK 초기화
 cred = credentials.Certificate('serviceAccountKey.json')
@@ -28,7 +29,7 @@ def get_data(ser):
     
             
 if __name__ == '__main__':
-    ser = Serial('/dev/ttyACM1', 9600, timeout=1)
+    ser = Serial('/dev/ttyACM0', 9600, timeout=1)
     ref = db.reference('laundry')
     
     thread1 = Thread(target = get_data, args=(ser,))
