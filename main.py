@@ -35,39 +35,41 @@ def get_data(ser):
     
             
 if __name__ == '__main__':
-    try:
-        # Firebase Admin SDK 초기화
-        cred = credentials.Certificate('serviceAccountKey.json')
-        firebase_admin.initialize_app(cred, {
-            'databaseURL': 'https://support-764f8-default-rtdb.firebaseio.com/'
-        })    
-    except Exception as e:
-        print(f'firebase connection error : {e}')
-    
-    try:
-        arduino_port = find_arduino_port()
-        ser = Serial(arduino_port+"@", 9600, timeout=1)
-    except Exception as e:
-        print(f'arduino connection error : {e}')
-        
-    thread1 = Thread(target = get_data, args=(ser,))
-    thread1.start()
     while True:
         try:
-            """
-            30 초 15 와트
-            25 초 
-            20 초 
-            15 초 9 와트 ***
-            """
-            ref = db.reference('laundry')
-            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            ref.set(last_value >= 8)
-            print(f"저장됨: {current_time} - {last_value}")
-            time.sleep(15)
-            
+            # Firebase Admin SDK 초기화
+            cred = credentials.Certificate('serviceAccountKey.json')
+            firebase_admin.initialize_app(cred, {
+                'databaseURL': 'https://support-764f8-default-rtdb.firebaseio.com/'
+            })    
         except Exception as e:
-            print(f'error : {e}')
+            print(f'firebase connection error : {e}')
+            continue
     
-    ser.close()
+    
+        try:
+            arduino_port = find_arduino_port()
+            ser = Serial(arduino_port, 9600, timeout=1)
+            thread1 = Thread(target = get_data, args=(ser,))
+            thread1.start()
+        except Exception as e:
+            print(f'arduino connection error : {e}')
+            continue
+        
+        while True:
+            try:
+                """
+                30 초 15 와트
+                25 초 
+                20 초 
+                15 초 9 와트 ***
+                """
+                ref = db.reference('laundry')
+                current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                ref.set(last_value >= 8)
+                print(f"저장됨: {current_time} - {last_value}")
+                time.sleep(15)
+                
+            except Exception as e:
+                print(f'error : {e}')
     
